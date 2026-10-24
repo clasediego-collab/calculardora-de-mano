@@ -9,7 +9,7 @@ const startBtn = document.getElementById("start-btn");
 const mirrorToggle = document.getElementById("mirror-toggle");
 const statusEl = document.getElementById("status");
 const hint = document.getElementById("hint");
-const handArtworks = Array.from({ length: 6 }, (_, fingers) => {
+const handArtworks = Array.from({ length: 7 }, (_, fingers) => {
   const image = new Image();
   image.src = new URL(`./${fingers}.svg`, import.meta.url).href;
   return image;
@@ -187,10 +187,10 @@ function drawCartoonGlove(lm) {
   ctx.restore();
 }
 
-function drawHandArtwork(lm, fingers) {
+function drawHandArtwork(lm, fingers, fullArtwork = false) {
   if (!handArtworksReady) {
     drawCartoonGlove(lm);
-    drawFingerCount(fingers, lm[9]);
+    if (fingers <= 5) drawFingerCount(fingers, lm[9]);
     return;
   }
 
@@ -215,8 +215,13 @@ function drawHandArtwork(lm, fingers) {
   const rightAxisY = Math.sin(rotation);
   const flipX = thumbDirectionX * rightAxisX + thumbDirectionY * rightAxisY < 0;
 
-  const crop = { x: 45, y: 10, width: 125, height: 250 };
+  const crop = fullArtwork
+    ? { x: 0, y: 0, width: 210, height: 297 }
+    : { x: 45, y: 10, width: 125, height: 250 };
   const wristAnchor = { x: 105, y: 130 };
+  const artworkX = flipX
+    ? wristAnchor.x - crop.x - (fullArtwork ? crop.width : 0)
+    : crop.x - wristAnchor.x;
   const scale = (palmWidth / 80) * 1.35;
   const sourceScaleX = handArtwork.naturalWidth / 210;
   const sourceScaleY = handArtwork.naturalHeight / 297;
@@ -231,7 +236,7 @@ function drawHandArtwork(lm, fingers) {
     crop.y * sourceScaleY,
     crop.width * sourceScaleX,
     crop.height * sourceScaleY,
-    flipX ? wristAnchor.x - crop.x : crop.x - wristAnchor.x,
+    artworkX,
     crop.y - wristAnchor.y,
     crop.width,
     crop.height,
@@ -364,14 +369,29 @@ function detectLoop() {
     const hands = results.landmarks || [];
     const scale = Math.max(canvas.width, canvas.height) / 600;
     let totalFingers = 0;
+    const fingerCounts = [];
+    const debugInfos = [];
 
     for (const lm of hands) {
       const debugInfo = DEBUG ? {} : null;
       const fingers = countFingers(lm, debugInfo);
+      fingerCounts.push(fingers);
+      debugInfos.push(debugInfo);
       totalFingers += fingers;
+    }
 
-      drawHandArtwork(lm, fingers);
+    const fiveHandIndex = fingerCounts.indexOf(5);
+    const isFivePlusOne = hands.length === 2
+      && fiveHandIndex !== -1
+      && fingerCounts[1 - fiveHandIndex] === 1;
+    if (isFivePlusOne && handArtworksReady) {
+      drawHandArtwork(hands[fiveHandIndex], 6, true);
+    } else {
+      hands.forEach((lm, index) => drawHandArtwork(lm, fingerCounts[index]));
+    }
 
+    for (const [index, lm] of hands.entries()) {
+      const debugInfo = debugInfos[index];
       // Debug: mostrar valores del pulgar junto a la punta (landmark 4)
       if (DEBUG && debugInfo) {
         const tip = lm[4];
@@ -401,7 +421,7 @@ function detectLoop() {
     } else if (hands.length === 1) {
       setStatus(`Manos: 1 · Dedos extendidos: ${totalFingers}${cfg}`);
     } else {
-      const detalle = hands.map(lm => countFingers(lm, null)).join(" + ");
+      const detalle = fingerCounts.join(" + ");
       setStatus(`Manos: ${hands.length} · Dedos: ${totalFingers} (${detalle})${cfg}`);
     }
   }
