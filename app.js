@@ -219,9 +219,7 @@ function drawHandArtwork(lm, fingers, fullArtwork = false) {
     ? { x: 0, y: 0, width: 210, height: 297 }
     : { x: 45, y: 10, width: 125, height: 250 };
   const wristAnchor = { x: 105, y: 130 };
-  const artworkX = flipX
-    ? wristAnchor.x - crop.x - (fullArtwork ? crop.width : 0)
-    : crop.x - wristAnchor.x;
+  const artworkX = crop.x - wristAnchor.x;
   const scale = (palmWidth / 80) * 1.35;
   const sourceScaleX = handArtwork.naturalWidth / 210;
   const sourceScaleY = handArtwork.naturalHeight / 297;
