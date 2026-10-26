@@ -65,6 +65,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 }
 
 #video { background: #000; }
+#video.segmented { visibility: hidden; }
 #canvas { pointer-events: none; }
 
 #video.mirror, #canvas.mirror { transform: scaleX(-1); }
