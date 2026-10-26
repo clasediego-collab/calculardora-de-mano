@@ -6,7 +6,7 @@ Abre la web en cualquier dispositivo con cámara —PC, celular o tablet— y ca
 
 ## ✨ Características
 
-- 🎥 Cada dispositivo usa su propia cámara.
+- 🎥 Usa la cámara para detectar las manos, mostrando las ilustraciones sobre un fondo liso.
 - 🖐️ Detecta hasta 2 manos con 21 puntos (landmarks) en 3D.
 - 📱 Funciona en PC, Android e iOS con el mismo código.
 - 🔒 Privado: el video nunca sale del dispositivo.

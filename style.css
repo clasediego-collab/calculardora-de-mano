@@ -52,7 +52,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .stage {
   position: relative;
   flex: 1;
-  background: #000;
+  background: #0b0b0d;
   overflow: hidden;
 }
 
@@ -64,8 +64,10 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   object-fit: contain;
 }
 
-#video { background: #000; }
-#video.segmented { visibility: hidden; }
+#video {
+  visibility: hidden;
+  background: #0b0b0d;
+}
 #canvas { pointer-events: none; }
 
 #video.mirror, #canvas.mirror { transform: scaleX(-1); }
