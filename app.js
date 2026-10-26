@@ -276,52 +276,6 @@ function drawFingerCount(fingers, palm) {
   ctx.fillText(fingers, px, py);
 }
 
-function drawWristGuide(lm) {
-  const wristX = lm[0].x * canvas.width;
-  const wristY = lm[0].y * canvas.height;
-  const distances = [
-    { edge: "left", distance: wristX },
-    { edge: "right", distance: canvas.width - wristX },
-    { edge: "top", distance: wristY },
-    { edge: "bottom", distance: canvas.height - wristY },
-  ];
-  const nearest = distances.reduce((a, b) => a.distance <= b.distance ? a : b);
-  const edgePoint = {
-    x: nearest.edge === "left" ? 0
-      : nearest.edge === "right" ? canvas.width : wristX,
-    y: nearest.edge === "top" ? 0
-      : nearest.edge === "bottom" ? canvas.height : wristY,
-  };
-  const deltaX = edgePoint.x - wristX;
-  const deltaY = edgePoint.y - wristY;
-  const length = Math.hypot(deltaX, deltaY);
-  if (length === 0) return;
-
-  const bend = Math.min(length * 0.12, canvas.width * 0.08);
-  const normalX = -deltaY / length;
-  const normalY = deltaX / length;
-
-  ctx.save();
-  ctx.beginPath();
-  ctx.moveTo(wristX, wristY);
-  ctx.bezierCurveTo(
-    wristX + deltaX / 3 + normalX * bend,
-    wristY + deltaY / 3 + normalY * bend,
-    wristX + deltaX * 2 / 3 + normalX * bend,
-    wristY + deltaY * 2 / 3 + normalY * bend,
-    edgePoint.x,
-    edgePoint.y,
-  );
-  ctx.strokeStyle = "rgba(0,0,0,0.8)";
-  ctx.lineWidth = Math.max(8, canvas.width * 0.012);
-  ctx.lineCap = "round";
-  ctx.stroke();
-  ctx.strokeStyle = "#fbbf24";
-  ctx.lineWidth = Math.max(3, canvas.width * 0.004);
-  ctx.stroke();
-  ctx.restore();
-}
-
 function drawCameraBackground(timestamp) {
   if (!imageSegmenter || !backgroundArtworkReady) return;
 
@@ -541,7 +495,6 @@ function detectLoop() {
     const debugInfos = [];
 
     for (const lm of hands) {
-      drawWristGuide(lm);
       const debugInfo = DEBUG ? {} : null;
       const fingers = countFingers(lm, debugInfo);
       fingerCounts.push(fingers);
