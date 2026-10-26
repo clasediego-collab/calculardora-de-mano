@@ -9,7 +9,7 @@ const startBtn = document.getElementById("start-btn");
 const mirrorToggle = document.getElementById("mirror-toggle");
 const statusEl = document.getElementById("status");
 const hint = document.getElementById("hint");
-const handArtworks = Array.from({ length: 7 }, (_, fingers) => {
+const handArtworks = Array.from({ length: 11 }, (_, fingers) => {
   const image = new Image();
   image.src = new URL(`./${fingers}.svg`, import.meta.url).href;
   return image;
@@ -190,7 +190,7 @@ function drawCartoonGlove(lm) {
 function drawHandArtwork(lm, fingers, fullArtwork = false) {
   if (!handArtworksReady) {
     drawCartoonGlove(lm);
-    if (fingers <= 5) drawFingerCount(fingers, lm[9]);
+    drawFingerCount(fingers, lm[9]);
     return;
   }
 
@@ -380,12 +380,20 @@ function detectLoop() {
       totalFingers += fingers;
     }
 
-    const fiveHandIndex = fingerCounts.indexOf(5);
-    const isFivePlusOne = hands.length === 2
-      && fiveHandIndex !== -1
-      && fingerCounts[1 - fiveHandIndex] === 1;
-    if (isFivePlusOne && handArtworksReady) {
-      drawHandArtwork(hands[fiveHandIndex], 6, true);
+    const hasCombinedPose = hands.length === 2
+      && totalFingers >= 6
+      && totalFingers <= 10;
+    if (hasCombinedPose) {
+      const palmWidth = (lm) => {
+        const index = lm[5];
+        const pinky = lm[17];
+        return Math.hypot(
+          (index.x - pinky.x) * canvas.width,
+          (index.y - pinky.y) * canvas.height,
+        );
+      };
+      const mainHandIndex = palmWidth(hands[0]) >= palmWidth(hands[1]) ? 0 : 1;
+      drawHandArtwork(hands[mainHandIndex], totalFingers, true);
     } else {
       hands.forEach((lm, index) => drawHandArtwork(lm, fingerCounts[index]));
     }
