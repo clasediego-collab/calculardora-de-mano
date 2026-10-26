@@ -12,6 +12,7 @@ Abre la web en cualquier dispositivo con cámara —PC, celular o tablet— y ca
 - 🔒 Privado: el video nunca sale del dispositivo.
 - 🪞 Modo espejo activable.
 - 🎛️ Selector de cámara (frontal, trasera, externas en PC).
+- 🎨 Mantén la mano señalando el tarro para transformarla en una brocha.
 - ⚡ Sin instalación: es una web estática.
 
 ## 🧰 Stack

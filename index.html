@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
   <title>Lector de Manos</title>
-  <link rel="stylesheet" href="style.css?v=city-background-1" />
+  <link rel="stylesheet" href="style.css?v=jar-brush-1" />
 </head>
 <body>
   <header>
@@ -23,12 +23,15 @@
 
   <main class="stage">
     <video id="video" playsinline muted autoplay></video>
+    <div id="jar-target" class="jar-target" role="img" aria-label="Tarro: apunta con el índice para convertir la mano en brocha">
+      <img src="tarro.svg" alt="" />
+    </div>
     <canvas id="canvas"></canvas>
     <div id="hint" class="hint">Presiona “Iniciar” para activar la cámara</div>
   </main>
 
   <footer id="status">Listo.</footer>
 
-  <script type="module" src="app.js?v=glove-14"></script>
+  <script type="module" src="app.js?v=jar-brush-1"></script>
 </body>
 </html>

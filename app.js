@@ -9,6 +9,13 @@ const startBtn = document.getElementById("start-btn");
 const mirrorToggle = document.getElementById("mirror-toggle");
 const statusEl = document.getElementById("status");
 const hint = document.getElementById("hint");
+const jarTarget = document.getElementById("jar-target");
+const brushArtwork = new Image();
+const brushArtworkLoaded = new Promise((resolve, reject) => {
+  brushArtwork.onload = resolve;
+  brushArtwork.onerror = () => reject(new Error("No se pudo cargar brocha.svg."));
+});
+brushArtwork.src = new URL("./brocha.svg", import.meta.url).href;
 const handArtworks = Array.from({ length: 11 }, (_, fingers) => {
   const image = new Image();
   image.src = new URL(`./${fingers}.svg`, import.meta.url).href;
@@ -20,6 +27,7 @@ const handArtworksLoaded = Promise.all(handArtworks.map((image, fingers) =>
     image.onerror = () => reject(new Error(`No se pudo cargar ${fingers}.svg.`));
   }),
 ));
+const JAR_HOVER_DELAY_MS = 650;
 
 // Parámetros sintonizables vía URL:
 // ?debug=1&thumbMCP=145&thumbIP=145&thumbDist=0.5
@@ -43,6 +51,10 @@ let rafId = null;
 let lastVideoTime = -1;
 let handArtworksReady = false;
 let handArtworksError = null;
+let brushArtworkReady = false;
+let brushArtworkError = null;
+let hoveringHandIndex = -1;
+let hoverStartedAt = 0;
 
 // ---------- Utilidades ----------
 
@@ -97,6 +109,15 @@ function countFingers(lm, debugInfo) {
   if (isThumbExtended(lm, debugInfo)) count++;
 
   return count;
+}
+
+function isPointingWithIndex(lm) {
+  const wrist = lm[0];
+  const isExtended = (tip, joint) => dist(lm[tip], wrist) > dist(lm[joint], wrist) * 1.1;
+  return isExtended(8, 6)
+    && !isExtended(12, 10)
+    && !isExtended(16, 14)
+    && !isExtended(20, 18);
 }
 
 function drawCartoonGlove(lm) {
@@ -241,6 +262,53 @@ function drawHandArtwork(lm, fingers, fullArtwork = false) {
   ctx.restore();
 }
 
+function drawBrushArtwork(lm) {
+  if (!brushArtworkReady) return;
+
+  const point = (index) => ({
+    x: lm[index].x * canvas.width,
+    y: lm[index].y * canvas.height,
+  });
+  const wrist = point(0);
+  const middleBase = point(9);
+  const palmWidth = Math.hypot(point(5).x - point(17).x, point(5).y - point(17).y);
+  const downX = wrist.x - middleBase.x;
+  const downY = wrist.y - middleBase.y;
+  if (palmWidth === 0 || Math.hypot(downX, downY) === 0) return;
+
+  const rotation = Math.atan2(downY, downX) - Math.PI / 2;
+  const width = palmWidth * 1.8;
+  const height = width * brushArtwork.naturalHeight / brushArtwork.naturalWidth;
+  const brushCenterY = height * (145 / 297);
+
+  ctx.save();
+  ctx.translate(middleBase.x, middleBase.y);
+  ctx.rotate(rotation);
+  ctx.drawImage(brushArtwork, -width / 2, -brushCenterY, width, height);
+  ctx.restore();
+}
+
+function getHandHoveringJar(hands) {
+  const canvasRect = canvas.getBoundingClientRect();
+  const scale = Math.min(canvasRect.width / canvas.width, canvasRect.height / canvas.height);
+  const drawnWidth = canvas.width * scale;
+  const drawnHeight = canvas.height * scale;
+  const offsetX = (canvasRect.width - drawnWidth) / 2;
+  const offsetY = (canvasRect.height - drawnHeight) / 2;
+  const jarRect = jarTarget.getBoundingClientRect();
+
+  return hands.findIndex((lm) => {
+    if (!isPointingWithIndex(lm)) return false;
+    const normalizedX = mirrorToggle.checked ? 1 - lm[8].x : lm[8].x;
+    const pointerX = canvasRect.left + offsetX + normalizedX * drawnWidth;
+    const pointerY = canvasRect.top + offsetY + lm[8].y * drawnHeight;
+    return pointerX >= jarRect.left
+      && pointerX <= jarRect.right
+      && pointerY >= jarRect.top
+      && pointerY <= jarRect.bottom;
+  });
+}
+
 function drawFingerCount(fingers, palm) {
   const scale = Math.max(canvas.width, canvas.height) / 600;
   const px = palm.x * canvas.width;
@@ -268,6 +336,13 @@ async function initModel() {
     handArtworksError = error;
     console.error(error);
   }
+  try {
+    await brushArtworkLoaded;
+    brushArtworkReady = true;
+  } catch (error) {
+    brushArtworkError = error;
+    console.error(error);
+  }
   const vision = await FilesetResolver.forVisionTasks(WASM_URL);
   try {
     handLandmarker = await HandLandmarker.createFromOptions(vision, {
@@ -286,7 +361,9 @@ async function initModel() {
   setStatus(
     handArtworksError
       ? "Modelo listo. No se pudieron cargar las poses; se mostrará el conteo numérico."
-      : "Modelo listo. Elige cámara e inicia.",
+      : brushArtworkError
+        ? "Modelo listo. No se pudo cargar brocha.svg."
+        : "Modelo listo. Elige cámara e inicia.",
   );
   startBtn.disabled = false;
 }
@@ -333,6 +410,8 @@ async function startCamera(deviceId) {
   running = true;
   startBtn.textContent = "Detener";
   lastVideoTime = -1;
+  hoveringHandIndex = -1;
+  hoverStartedAt = 0;
   rafId = requestAnimationFrame(detectLoop);
 }
 
@@ -386,10 +465,30 @@ function detectLoop() {
       totalFingers += fingers;
     }
 
+    const hoveredIndex = getHandHoveringJar(hands);
+    if (hoveredIndex === -1) {
+      hoveringHandIndex = -1;
+      hoverStartedAt = 0;
+    } else if (hoveredIndex !== hoveringHandIndex) {
+      hoveringHandIndex = hoveredIndex;
+      hoverStartedAt = timestamp;
+    }
+    const brushHandIndex = hoveringHandIndex !== -1
+      && timestamp - hoverStartedAt >= JAR_HOVER_DELAY_MS
+      && brushArtworkReady
+      ? hoveringHandIndex
+      : -1;
+
     const hasCombinedPose = hands.length === 2
       && totalFingers >= 6
-      && totalFingers <= 10;
-    if (hasCombinedPose) {
+      && totalFingers <= 10
+      && brushHandIndex === -1;
+    if (brushHandIndex !== -1) {
+      hands.forEach((lm, index) => {
+        if (index === brushHandIndex) drawBrushArtwork(lm);
+        else drawHandArtwork(lm, fingerCounts[index]);
+      });
+    } else if (hasCombinedPose) {
       const palmWidth = (lm) => {
         const index = lm[5];
         const pinky = lm[17];
@@ -437,6 +536,9 @@ function detectLoop() {
     } else {
       const detalle = fingerCounts.join(" + ");
       setStatus(`Manos: ${hands.length} · Dedos: ${totalFingers} (${detalle})${cfg}`);
+    }
+    if (brushHandIndex !== -1) {
+      setStatus(`${statusEl.textContent} · Brocha activada`);
     }
   }
 

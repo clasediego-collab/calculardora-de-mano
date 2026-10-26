@@ -68,12 +68,37 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
   visibility: hidden;
   background: #0b0b0d;
 }
-#canvas { pointer-events: none; }
+
+.jar-target {
+  position: absolute;
+  z-index: 1;
+  top: 8px;
+  left: 50%;
+  width: clamp(110px, 18vw, 170px);
+  height: clamp(145px, 23vh, 205px);
+  overflow: hidden;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.jar-target img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+#canvas {
+  z-index: 2;
+  pointer-events: none;
+}
 
 #video.mirror, #canvas.mirror { transform: scaleX(-1); }
 
 .hint {
   position: absolute;
+  z-index: 3;
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
