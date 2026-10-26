@@ -52,7 +52,7 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 .stage {
   position: relative;
   flex: 1;
-  background: #0b0b0d;
+  background: #0b0b0d url("./fondo-ciudad.png") center / cover no-repeat;
   overflow: hidden;
 }
 
